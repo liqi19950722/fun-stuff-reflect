@@ -46,18 +46,29 @@ public class ReflectionBenchmark {
     static MethodHandle personGetNameStaticMethodHandle;
 
     Function<Person, String> personGetNameFunction;
+
+    static {
+        var lookup = MethodHandles.lookup();
+        try {
+            personGetNameStaticMethodHandle = lookup.findVirtual(Person.class, "getName", MethodType.methodType(String.class));
+        } catch (NoSuchMethodException e) {
+            throw new RuntimeException(e);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+
+    }
     @Setup
     public void setup() throws Throwable {
         person = new Person("John");
         personGetMethod = Person.class.getMethod("getName");
         var lookup = MethodHandles.lookup();
         personGetNameMethodHandle = lookup.findVirtual(Person.class, "getName", MethodType.methodType(String.class));
-        personGetNameStaticMethodHandle = lookup.findVirtual(Person.class, "getName", MethodType.methodType(String.class));
 
         var callsite = LambdaMetafactory.metafactory(lookup, "apply",
                 MethodType.methodType(Function.class),
                 MethodType.methodType(Object.class, Object.class),
-                personGetNameMethodHandle,
+                lookup.findVirtual(Person.class, "getName", MethodType.methodType(String.class)),
                 MethodType.methodType(String.class, Person.class));
         personGetNameFunction = (Function<Person, String>) callsite.getTarget().invokeExact();
     }
