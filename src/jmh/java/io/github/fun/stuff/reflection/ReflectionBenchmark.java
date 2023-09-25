@@ -44,6 +44,7 @@ public class ReflectionBenchmark {
     MethodHandle personGetNameMethodHandle;
 
     static MethodHandle personGetNameStaticMethodHandle;
+    static final MethodHandle personGetNameStaticFinalMethodHandle;
 
     Function<Person, String> personGetNameFunction;
 
@@ -51,6 +52,7 @@ public class ReflectionBenchmark {
         var lookup = MethodHandles.lookup();
         try {
             personGetNameStaticMethodHandle = lookup.findVirtual(Person.class, "getName", MethodType.methodType(String.class));
+            personGetNameStaticFinalMethodHandle = personGetNameStaticMethodHandle;
         } catch (NoSuchMethodException e) {
             throw new RuntimeException(e);
         } catch (IllegalAccessException e) {
@@ -58,6 +60,7 @@ public class ReflectionBenchmark {
         }
 
     }
+
     @Setup
     public void setup() throws Throwable {
         person = new Person("John");
@@ -92,6 +95,11 @@ public class ReflectionBenchmark {
     @Benchmark
     public String _301_staticMethodHandle() throws Throwable {
         return (String) personGetNameStaticMethodHandle.invokeExact(person);
+    }
+
+    @Benchmark
+    public String _302_staticFinalMethodHandle() throws Throwable {
+        return (String) personGetNameStaticFinalMethodHandle.invokeExact(person);
     }
 
     @Benchmark
