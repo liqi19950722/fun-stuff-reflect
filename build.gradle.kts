@@ -6,6 +6,12 @@ plugins {
 group = "io.github.fun.stuff.reflection"
 version = "1.0-SNAPSHOT"
 
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+        vendor = JvmVendorSpec.AMAZON
+    }
+}
 repositories {
     mavenCentral()
 }

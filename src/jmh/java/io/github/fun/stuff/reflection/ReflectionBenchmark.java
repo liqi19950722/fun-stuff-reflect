@@ -11,13 +11,13 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
 
-import java.lang.invoke.LambdaConversionException;
 import java.lang.invoke.LambdaMetafactory;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
@@ -46,6 +46,10 @@ public class ReflectionBenchmark {
     static MethodHandle personGetNameStaticMethodHandle;
     static final MethodHandle personGetNameStaticFinalMethodHandle;
 
+    static  Map<String,MethodHandle> staticMethodHandleMap;
+    static final Map<String,MethodHandle> staticFinalMethodHandleMap;
+
+
     Function<Person, String> personGetNameFunction;
 
     static {
@@ -53,6 +57,8 @@ public class ReflectionBenchmark {
         try {
             personGetNameStaticMethodHandle = lookup.findVirtual(Person.class, "getName", MethodType.methodType(String.class));
             personGetNameStaticFinalMethodHandle = personGetNameStaticMethodHandle;
+            staticFinalMethodHandleMap = Map.of("getName", personGetNameStaticMethodHandle);
+            staticMethodHandleMap = Map.of("getName", personGetNameStaticMethodHandle);
         } catch (NoSuchMethodException e) {
             throw new RuntimeException(e);
         } catch (IllegalAccessException e) {
@@ -101,9 +107,18 @@ public class ReflectionBenchmark {
     public String _302_staticFinalMethodHandle() throws Throwable {
         return (String) personGetNameStaticFinalMethodHandle.invokeExact(person);
     }
-
+    @Benchmark
+    public String _303_methodHandleInStaticFinalMap() throws Throwable {
+        return (String) staticFinalMethodHandleMap.get("getName").invokeExact(person);
+    }
+    @Benchmark
+    public String _304_methodHandleInStaticMap() throws Throwable {
+        return (String) staticMethodHandleMap.get("getName").invokeExact(person);
+    }
     @Benchmark
     public String _400_lambdaMetafactory() throws Throwable {
         return personGetNameFunction.apply(person);
     }
+
+
 }
