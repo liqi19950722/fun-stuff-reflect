@@ -46,10 +46,13 @@ public class ReflectionBenchmark {
     static MethodHandle personGetNameStaticMethodHandle;
     static final MethodHandle personGetNameStaticFinalMethodHandle;
 
-    static  Map<String,MethodHandle> staticMethodHandleMap;
-    static final Map<String,MethodHandle> staticFinalMethodHandleMap;
+    static Map<String, MethodHandle> staticMethodHandleMap;
+    static final Map<String, MethodHandle> staticFinalMethodHandleMap;
 
+    static MethodHandleRecord staticMethodHandleRecord;
+    static final MethodHandleRecord staticFinalMethodHandleRecord;
 
+    MethodHandleRecordFunction methodHandleRecordFunction;
     Function<Person, String> personGetNameFunction;
 
     static {
@@ -59,6 +62,8 @@ public class ReflectionBenchmark {
             personGetNameStaticFinalMethodHandle = personGetNameStaticMethodHandle;
             staticFinalMethodHandleMap = Map.of("getName", personGetNameStaticMethodHandle);
             staticMethodHandleMap = Map.of("getName", personGetNameStaticMethodHandle);
+            staticMethodHandleRecord = new MethodHandleRecord(personGetNameStaticMethodHandle);
+            staticFinalMethodHandleRecord = new MethodHandleRecord(personGetNameStaticMethodHandle);
         } catch (NoSuchMethodException e) {
             throw new RuntimeException(e);
         } catch (IllegalAccessException e) {
@@ -73,7 +78,7 @@ public class ReflectionBenchmark {
         personGetMethod = Person.class.getMethod("getName");
         var lookup = MethodHandles.lookup();
         personGetNameMethodHandle = lookup.findVirtual(Person.class, "getName", MethodType.methodType(String.class));
-
+        methodHandleRecordFunction = new MethodHandleRecordFunction(personGetNameMethodHandle);
         var callsite = LambdaMetafactory.metafactory(lookup, "apply",
                 MethodType.methodType(Function.class),
                 MethodType.methodType(Object.class, Object.class),
@@ -107,18 +112,49 @@ public class ReflectionBenchmark {
     public String _302_staticFinalMethodHandle() throws Throwable {
         return (String) personGetNameStaticFinalMethodHandle.invokeExact(person);
     }
+
     @Benchmark
     public String _303_methodHandleInStaticFinalMap() throws Throwable {
         return (String) staticFinalMethodHandleMap.get("getName").invokeExact(person);
     }
+
     @Benchmark
     public String _304_methodHandleInStaticMap() throws Throwable {
         return (String) staticMethodHandleMap.get("getName").invokeExact(person);
     }
+
+    @Benchmark
+    public String _305_methodHandleInRecordClass() throws Throwable {
+        return (String) staticMethodHandleRecord.methodHandle().invokeExact(person);
+    }
+
+    @Benchmark
+    public String _306_methodHandleInStaticFinalRecordClass() throws Throwable {
+        return (String) staticFinalMethodHandleRecord.methodHandle().invokeExact(person);
+    }
+
+    @Benchmark
+    public String _307_methodHandleInRecordClassFunction() throws Throwable {
+        return (String) methodHandleRecordFunction.apply(person);
+    }
+
     @Benchmark
     public String _400_lambdaMetafactory() throws Throwable {
         return personGetNameFunction.apply(person);
     }
 
+    record MethodHandleRecord(MethodHandle methodHandle) {
+    }
 
+    record MethodHandleRecordFunction(MethodHandle methodHandle) implements Function<Person, String> {
+
+        @Override
+        public String apply(Person p) {
+            try {
+                return (String) methodHandle.invokeExact(p);
+            } catch (Throwable e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
 }
